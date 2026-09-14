@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Select, Space, Table, Tag, Upload, message, Typography } from 'antd'
+import { Button, Card, Select, Space, Spin, Table, Tag, Upload, message, Typography } from 'antd'
 import { UploadOutlined, ReloadOutlined, FileTextOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -11,6 +11,7 @@ import {
   uploadDocument,
   validateUploadFile,
 } from '../api/documents'
+import { useIsMobile } from '../hooks/useIsMobile'
 import type { DocumentListItem } from '../types'
 
 const statusMeta: Record<string, { color: string; label: string }> = {
@@ -29,6 +30,7 @@ const typeLabel: Record<string, string> = {
 }
 
 export default function DocumentsPage() {
+  const isMobile = useIsMobile()
   const [items, setItems] = useState<DocumentListItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -116,77 +118,110 @@ export default function DocumentsPage() {
     },
   ]
 
+  const toolbar = (
+    <Space wrap className="docs-toolbar">
+      <Select
+        allowClear
+        placeholder="全部类型"
+        style={{ width: isMobile ? '100%' : 140 }}
+        value={docType}
+        onChange={(v) => { setPage(1); setDocType(v) }}
+        options={[
+          { value: 'kb', label: '知识库' },
+          { value: 'resume', label: '简历' },
+          { value: 'jd', label: '职位' },
+          { value: 'internship', label: '实习' },
+          { value: 'other', label: '其他' },
+        ]}
+      />
+      <Button icon={<ReloadOutlined />} onClick={() => void refresh()}>刷新</Button>
+      <Upload
+        showUploadList={false}
+        accept={ALLOWED_UPLOAD_EXT.join(',')}
+        beforeUpload={async (file) => {
+          const f = file as File
+          const err = validateUploadFile(f)
+          if (err) {
+            message.error(err)
+            return false
+          }
+          setUploading(true)
+          try {
+            const sync = f.size <= SYNC_THRESHOLD_BYTES
+            const res = await uploadDocument(f, docType || 'kb', sync)
+            if (res?.status === 'failed') {
+              message.error(res.message || '入库失败')
+            } else {
+              message.success(sync ? '上传并同步入库成功' : '已提交异步入库，稍后刷新查看状态')
+            }
+            await refresh()
+          } catch (e) {
+            message.error(e instanceof Error ? e.message : '上传失败')
+          } finally {
+            setUploading(false)
+          }
+          return false
+        }}
+      >
+        <Button type="primary" icon={<UploadOutlined />} loading={uploading}>上传文档</Button>
+      </Upload>
+    </Space>
+  )
+
   return (
     <Card
       className="surface-card"
       title={`知识库文档 · ${total} 篇`}
-      extra={
-        <Space wrap>
-          <Select
-            allowClear
-            placeholder="全部类型"
-            style={{ width: 140 }}
-            value={docType}
-            onChange={(v) => { setPage(1); setDocType(v) }}
-            options={[
-              { value: 'kb', label: '知识库' },
-              { value: 'resume', label: '简历' },
-              { value: 'jd', label: '职位' },
-              { value: 'internship', label: '实习' },
-              { value: 'other', label: '其他' },
-            ]}
-          />
-          <Button icon={<ReloadOutlined />} onClick={() => void refresh()}>刷新</Button>
-          <Upload
-            showUploadList={false}
-            accept={ALLOWED_UPLOAD_EXT.join(',')}
-            beforeUpload={async (file) => {
-              const f = file as File
-              const err = validateUploadFile(f)
-              if (err) {
-                message.error(err)
-                return false
-              }
-              setUploading(true)
-              try {
-                const sync = f.size <= SYNC_THRESHOLD_BYTES
-                const res = await uploadDocument(f, docType || 'kb', sync)
-                if (res?.status === 'failed') {
-                  message.error(res.message || '入库失败')
-                } else {
-                  message.success(sync ? '上传并同步入库成功' : '已提交异步入库，稍后刷新查看状态')
-                }
-                await refresh()
-              } catch (e) {
-                message.error(e instanceof Error ? e.message : '上传失败')
-              } finally {
-                setUploading(false)
-              }
-              return false
-            }}
-          >
-            <Button type="primary" icon={<UploadOutlined />} loading={uploading}>上传文档</Button>
-          </Upload>
-        </Space>
-      }
+      extra={isMobile ? undefined : toolbar}
     >
-      <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+      {isMobile && <div className="docs-toolbar-wrap">{toolbar}</div>}
+      <Typography.Paragraph type="secondary" style={{ marginTop: isMobile ? 12 : 0 }}>
         支持 {ALLOWED_UPLOAD_EXT.join(' / ')}，最大 {Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB；
         超过 {Math.round(SYNC_THRESHOLD_BYTES / 1024 / 1024)}MB 走异步入库，避免卡住界面。
       </Typography.Paragraph>
-      <Table
-        rowKey="document_id"
-        loading={loading}
-        columns={columns}
-        dataSource={items}
-        pagination={{
-          current: page,
-          total,
-          pageSize,
-          hideOnSinglePage: true,
-          onChange: (p) => setPage(p),
-        }}
-      />
+      {isMobile ? (
+        <Spin spinning={loading}>
+        <div className="doc-list">
+          {!loading && items.length === 0 && (
+            <Typography.Paragraph type="secondary">暂无文档</Typography.Paragraph>
+          )}
+          {items.map((row) => {
+            const meta = statusMeta[row.status] || { color: 'default', label: row.status }
+            return (
+              <article key={row.document_id} className="doc-card">
+                <div className="doc-card-title">
+                  <FileTextOutlined style={{ color: 'var(--navy)' }} />
+                  <span>{row.filename}</span>
+                </div>
+                <div className="doc-card-meta">
+                  <span>{typeLabel[row.doc_type] || row.doc_type}</span>
+                  <Tag color={meta.color}>{meta.label}</Tag>
+                  <span>分块 {row.chunk_count}</span>
+                  <span>{row.updated_at ? dayjs(row.updated_at).format('MM-DD HH:mm') : '—'}</span>
+                </div>
+                {row.status === 'failed' && (
+                  <div className="doc-card-error">{row.error_message || '入库失败'}</div>
+                )}
+              </article>
+            )
+          })}
+        </div>
+        </Spin>
+      ) : (
+        <Table
+          rowKey="document_id"
+          loading={loading}
+          columns={columns}
+          dataSource={items}
+          pagination={{
+            current: page,
+            total,
+            pageSize,
+            hideOnSinglePage: true,
+            onChange: (p) => setPage(p),
+          }}
+        />
+      )}
     </Card>
   )
 }

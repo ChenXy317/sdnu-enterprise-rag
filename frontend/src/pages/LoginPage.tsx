@@ -45,7 +45,7 @@ export default function LoginPage() {
         <img className="login-brand-art" src="/login-art.jpg" alt="" />
         <div className="login-brand-scrim" />
         <div className="login-brand-inner">
-          <img src="/sdnu-emblem-128.png" alt="山东师范大学校徽" width={72} height={72} />
+          <img className="login-emblem" src="/sdnu-emblem-128.png" alt="山东师范大学校徽" width={72} height={72} />
           <h1>山东师范大学</h1>
           <p className="login-motto">弘德明志 · 博学笃行</p>
           <p className="login-en">Shandong Normal University · Knowledge Base</p>

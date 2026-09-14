@@ -110,7 +110,7 @@ export default function SettingsPage() {
           OpenAI 兼容接口：`base_url` / `api_key` / `model`。`api_key` 留空不提交=保持原值；提交空串=清成 `sk-no-auth`。私网 / Docker 服务名不可作为 base_url。
         </Typography.Paragraph>
 
-        <Descriptions size="small" column={1} bordered style={{ marginBottom: 16 }}>
+        <Descriptions size="small" column={1} bordered className="settings-desc" style={{ marginBottom: 16 }}>
           <Descriptions.Item label="health">
             {health ? <Tag color={health.status === 'ok' ? 'success' : 'warning'}>{health.status}</Tag> : '-'}
           </Descriptions.Item>
@@ -146,7 +146,7 @@ export default function SettingsPage() {
           <Form.Item name="model" label="model" rules={[{ required: true }]}>
             <Input placeholder="qwen2.5:3b" />
           </Form.Item>
-          <Space>
+          <Space wrap>
             <Button type="primary" htmlType="submit" loading={saving}>应用配置</Button>
             <Button
               loading={saving}

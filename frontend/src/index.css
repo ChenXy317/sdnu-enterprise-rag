@@ -18,9 +18,14 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
+  min-height: 100dvh;
   font-family: var(--font-sans);
   background: var(--paper);
   color: var(--ink);
+}
+
+html {
+  overflow-x: hidden;
 }
 
 body {
@@ -35,6 +40,7 @@ body {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   background: transparent;
 }
 
@@ -211,6 +217,15 @@ body {
   min-height: 0;
 }
 
+.chat-thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 4px 12px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .session-item {
   display: flex;
   align-items: center;
@@ -325,6 +340,7 @@ body {
 
 .login-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(320px, 1.05fr) minmax(380px, 0.95fr);
 }
@@ -455,34 +471,182 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-@media (max-width: 960px) {
+.header-brand-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.header-brand-mini img {
+  flex-shrink: 0;
+}
+
+.tenant-tag.ant-tag {
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: color-mix(in srgb, var(--surface) 92%, #fff);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.app-tabbar button {
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 4px 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.app-tabbar button .anticon {
+  font-size: 18px;
+}
+
+.app-tabbar button.is-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.docs-toolbar-wrap {
+  margin-bottom: 8px;
+}
+
+.docs-toolbar {
+  width: 100%;
+}
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-card {
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.doc-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.doc-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.doc-card-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #a8071a;
+  word-break: break-word;
+}
+
+.settings-desc {
+  overflow-x: auto;
+}
+
+.settings-desc table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.settings-desc .ant-descriptions-item-content {
+  word-break: break-all;
+}
+
+@media (max-width: 959px) {
   .login-shell {
     grid-template-columns: 1fr;
   }
 
   .login-brand {
-    min-height: 240px;
+    min-height: 0;
+    height: 28vh;
+    max-height: 200px;
   }
 
   .login-brand-inner {
-    padding: 28px 24px;
+    padding: 20px 20px 16px;
+    justify-content: flex-end;
   }
 
   .login-brand-inner h1 {
-    font-size: 26px;
+    font-size: 22px;
+    margin: 8px 0 4px;
+  }
+
+  .login-emblem {
+    width: 48px;
+    height: 48px;
+  }
+
+  .login-motto {
+    font-size: 14px;
+    letter-spacing: 0.16em;
+  }
+
+  .login-en {
+    margin-bottom: 0;
+    font-size: 11px;
   }
 
   .login-points {
     display: none;
   }
 
-  .chat-grid {
-    grid-template-columns: 1fr;
-    height: auto;
+  .login-panel {
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    align-items: start;
   }
 
-  .app-content.ant-layout-content {
-    padding: 16px;
+  .login-card {
+    width: 100%;
+  }
+
+  .app-shell.is-mobile {
+    min-height: 100dvh;
+  }
+
+  .app-header.ant-layout-header {
+    height: 56px;
+    padding-inline: 12px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .header-kicker,
@@ -491,12 +655,91 @@ body {
     display: none;
   }
 
-  .app-header.ant-layout-header {
-    padding-inline: 12px;
-    height: 60px;
-  }
-
   .header-title {
     font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-user {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .app-content.ant-layout-content,
+  .app-content.is-mobile {
+    padding: 12px 12px calc(16px + 56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .chat-grid,
+  .chat-grid.is-mobile {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - 56px - 56px - 28px - env(safe-area-inset-bottom, 0px));
+    min-height: 0;
+  }
+
+  .chat-grid.is-mobile > .chat-main {
+    min-height: 0;
+  }
+
+  .bubble {
+    max-width: min(88%, 640px);
+    font-size: 15px;
+  }
+
+  .composer {
+    padding: 8px 10px;
+    border-radius: 16px;
+  }
+
+  .composer .ant-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .suggest-chip {
+    padding: 8px 12px;
+  }
+
+  .surface-card .ant-card-head {
+    min-height: 48px;
+    padding-inline: 12px;
+  }
+
+  .surface-card .ant-card-head-wrapper {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .surface-card .ant-card-body {
+    padding: 12px;
+  }
+
+  .surface-card .ant-card-extra {
+    margin-inline-start: 8px;
+  }
+
+  .docs-toolbar {
+    display: flex;
+  }
+
+  .docs-toolbar .ant-space-item {
+    flex: 1 1 auto;
+  }
+
+  .docs-toolbar .ant-select,
+  .docs-toolbar .ant-btn,
+  .docs-toolbar .ant-upload {
+    width: 100%;
+  }
+
+  input,
+  textarea,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-outlined,
+  .ant-select-selector {
+    font-size: 16px !important;
   }
 }

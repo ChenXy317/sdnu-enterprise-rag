@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, Card, Input, Space, Typography, message, Spin, Collapse } from 'antd'
-import { PlusOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Button, Card, Drawer, Input, Space, Typography, message, Spin, Collapse } from 'antd'
+import { PlusOutlined, SendOutlined, DeleteOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { createSession, deleteSession, getSession, listSessions, streamChat } from '../api/chat'
+import { useIsMobile } from '../hooks/useIsMobile'
 import type { Citation, SessionOut } from '../types'
 
 type ChatMessage = {
@@ -36,6 +37,8 @@ export default function ChatPage() {
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [sending, setSending] = useState(false)
+  const isMobile = useIsMobile()
+  const [sessionsOpen, setSessionsOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef<string | null>(null)
@@ -111,6 +114,7 @@ export default function ChatPage() {
       const s = await createSession('新对话')
       await refreshSessions(s.id)
       setSessionId(s.id)
+      setSessionsOpen(false)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '创建失败')
     }
@@ -190,47 +194,80 @@ export default function ChatPage() {
     }
   }
 
+  const sessionList = (
+    <Spin spinning={loadingSessions}>
+      {sessions.length === 0 ? (
+        <Typography.Paragraph type="secondary" style={{ padding: 20, textAlign: 'center' }}>
+          暂无会话，直接提问或点新建。
+        </Typography.Paragraph>
+      ) : (
+        sessions.map((s) => (
+          <div
+            key={s.id}
+            className={'session-item' + (s.id === sessionId ? ' is-active' : '')}
+            onClick={() => {
+              if (s.id !== sessionId) setSessionId(s.id)
+              setSessionsOpen(false)
+            }}
+          >
+            <Typography.Text ellipsis style={{ flex: 1 }}>{s.title || s.id.slice(0, 8)}</Typography.Text>
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => { e.stopPropagation(); void onDelete(s.id) }}
+            />
+          </div>
+        ))
+      )}
+    </Spin>
+  )
+
   return (
-    <div className="chat-grid">
-      <Card
-        className="surface-card"
-        size="small"
-        title="会话"
-        extra={<Button size="small" type="primary" ghost icon={<PlusOutlined />} onClick={() => void onNewSession()}>新建</Button>}
-        styles={{ body: { padding: '8px 0', overflow: 'auto' } }}
-      >
-        <Spin spinning={loadingSessions}>
-          {sessions.length === 0 ? (
-            <Typography.Paragraph type="secondary" style={{ padding: 20, textAlign: 'center' }}>
-              暂无会话，直接提问或点新建。
-            </Typography.Paragraph>
-          ) : (
-            sessions.map((s) => (
-              <div
-                key={s.id}
-                className={'session-item' + (s.id === sessionId ? ' is-active' : '')}
-                onClick={() => { if (s.id !== sessionId) setSessionId(s.id) }}
-              >
-                <Typography.Text ellipsis style={{ flex: 1 }}>{s.title || s.id.slice(0, 8)}</Typography.Text>
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => { e.stopPropagation(); void onDelete(s.id) }}
-                />
-              </div>
-            ))
-          )}
-        </Spin>
-      </Card>
+    <div className={'chat-grid' + (isMobile ? ' is-mobile' : '')}>
+      {isMobile ? (
+        <Drawer
+          title="会话"
+          placement="left"
+          open={sessionsOpen}
+          onClose={() => setSessionsOpen(false)}
+          extra={
+            <Button size="small" type="primary" ghost icon={<PlusOutlined />} onClick={() => void onNewSession()}>
+              新建
+            </Button>
+          }
+          width="86vw"
+          styles={{ body: { padding: '8px 0' } }}
+        >
+          {sessionList}
+        </Drawer>
+      ) : (
+        <Card
+          className="surface-card"
+          size="small"
+          title="会话"
+          extra={<Button size="small" type="primary" ghost icon={<PlusOutlined />} onClick={() => void onNewSession()}>新建</Button>}
+          styles={{ body: { padding: '8px 0', overflow: 'auto' } }}
+        >
+          {sessionList}
+        </Card>
+      )}
 
       <Card
-        className="surface-card"
-        title="与山师知识库对话"
-        styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 12 } }}
+        className="surface-card chat-main"
+        title={isMobile ? '对话' : '与山师知识库对话'}
+        extra={isMobile ? (
+          <Space size={8}>
+            <Button size="small" icon={<UnorderedListOutlined />} onClick={() => setSessionsOpen(true)}>
+              会话
+            </Button>
+            <Button size="small" type="primary" ghost icon={<PlusOutlined />} onClick={() => void onNewSession()} />
+          </Space>
+        ) : undefined}
+        styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingTop: 12 } }}
       >
-        <div style={{ flex: 1, overflow: 'auto', padding: '4px 4px 12px' }}>
+        <div className="chat-thread">
           <Spin spinning={loadingHistory}>
             {messages.length === 0 && !loadingHistory && (
               <div className="chat-empty">
@@ -283,8 +320,8 @@ export default function ChatPage() {
             value={input}
             variant="borderless"
             onChange={(e) => setInput(e.target.value)}
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            placeholder="输入问题，Enter 发送 · Shift+Enter 换行"
+            autoSize={{ minRows: 1, maxRows: isMobile ? 3 : 4 }}
+            placeholder={isMobile ? '输入问题' : '输入问题，Enter 发送 · Shift+Enter 换行'}
             onPressEnter={(e) => {
               if (!e.shiftKey) {
                 e.preventDefault()
@@ -293,8 +330,15 @@ export default function ChatPage() {
             }}
             disabled={sending}
           />
-          <Button type="primary" shape="round" icon={<SendOutlined />} loading={sending} onClick={() => void onSend()}>
-            发送
+          <Button
+            type="primary"
+            shape="round"
+            icon={<SendOutlined />}
+            loading={sending}
+            onClick={() => void onSend()}
+            aria-label="发送"
+          >
+            {isMobile ? null : '发送'}
           </Button>
         </div>
       </Card>
